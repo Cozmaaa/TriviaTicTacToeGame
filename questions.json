@@ -1,0 +1,324 @@
+{
+    "questions": [
+        {
+            "question": "What is the capital of France?",
+            "answer": "Paris"
+        },
+        {
+            "question": "Who wrote the play 'Romeo and Juliet'?",
+            "answer": "William Shakespeare"
+        },
+        {
+            "question": "What is the square root of 64?",
+            "answer": "8"
+        },
+        {
+            "question": "Which planet is known as the Red Planet?",
+            "answer": "Mars"
+        },
+        {
+            "question": "Who was the first President of the United States?",
+            "answer": "George Washington"
+        },
+        {
+            "question": "What is the largest ocean on Earth?",
+            "answer": "Pacific Ocean"
+        },
+        {
+            "question": "In what year did World War II end?",
+            "answer": "1945"
+        },
+        {
+            "question": "What is the chemical symbol for gold?",
+            "answer": "Au"
+        },
+        {
+            "question": "What is 7 multiplied by 6?",
+            "answer": "42"
+        },
+        {
+            "question": "Who painted the Mona Lisa?",
+            "answer": "Leonardo da Vinci"
+        },
+        {
+            "question": "What is the longest river in the world?",
+            "answer": "The Nile"
+        },
+        {
+            "question": "What is the smallest prime number?",
+            "answer": "2"
+        },
+        {
+            "question": "Who discovered penicillin?",
+            "answer": "Alexander Fleming"
+        },
+        {
+            "question": "What is the capital of Japan?",
+            "answer": "Tokyo"
+        },
+        {
+            "question": "How many continents are there on Earth?",
+            "answer": "7"
+        },
+        {
+            "question": "What is the formula for the area of a circle?",
+            "answer": "pi * r^2"
+        },
+        {
+            "question": "Who was the first man to walk on the Moon?",
+            "answer": "Neil Armstrong"
+        },
+        {
+            "question": "What is the freezing point of water in Celsius?",
+            "answer": "0 degrees"
+        },
+        {
+            "question": "What is the tallest mountain in the world?",
+            "answer": "Mount Everest"
+        },
+        {
+            "question": "What is the capital city of Australia?",
+            "answer": "Canberra"
+        },
+        {
+            "question": "What is the powerhouse of the cell?",
+            "answer": "Mitochondria"
+        },
+        {
+            "question": "In which year did the Titanic sink?",
+            "answer": "1912"
+        },
+        {
+            "question": "What is the capital of Canada?",
+            "answer": "Ottawa"
+        },
+        {
+            "question": "Who developed the theory of relativity?",
+            "answer": "Albert Einstein"
+        },
+        {
+            "question": "What is the hardest natural substance on Earth?",
+            "answer": "Diamond"
+        },
+        {
+            "question": "Who is the author of 'The Origin of Species'?",
+            "answer": "Charles Darwin"
+        },
+        {
+            "question": "What is the boiling point of water in Fahrenheit?",
+            "answer": "212 degrees"
+        },
+        {
+            "question": "What is the national flower of Japan?",
+            "answer": "Cherry Blossom"
+        },
+        {
+            "question": "Who painted 'Starry Night'?",
+            "answer": "Vincent van Gogh"
+        },
+        {
+            "question": "What is the capital of Italy?",
+            "answer": "Rome"
+        },
+        {
+            "question": "What is the chemical formula for table salt?",
+            "answer": "NaCl"
+        },
+        {
+            "question": "What is the largest desert in the world?",
+            "answer": "Sahara Desert"
+        },
+        {
+            "question": "Which country is known as the Land of the Rising Sun?",
+            "answer": "Japan"
+        },
+        {
+            "question": "How many bones are there in the adult human body?",
+            "answer": "206"
+        },
+        {
+            "question": "What is the capital of South Korea?",
+            "answer": "Seoul"
+        },
+        {
+            "question": "What is the most abundant gas in the Earth's atmosphere?",
+            "answer": "Nitrogen"
+        },
+        {
+            "question": "Who invented the telephone?",
+            "answer": "Alexander Graham Bell"
+        },
+        {
+            "question": "What is the chemical symbol for water?",
+            "answer": "H2O"
+        },
+        {
+            "question": "Which continent is the largest by land area?",
+            "answer": "Asia"
+        },
+        {
+            "question": "Who is known as the Father of Computers?",
+            "answer": "Charles Babbage"
+        },
+        {
+            "question": "What is the primary source of energy for Earth?",
+            "answer": "The Sun"
+        },
+        {
+            "question": "Which organ is responsible for pumping blood throughout the human body?",
+            "answer": "Heart"
+        },
+        {
+            "question": "What is the largest mammal in the world?",
+            "answer": "Blue Whale"
+        },
+        {
+            "question": "Who wrote the novel '1984'?",
+            "answer": "George Orwell"
+        },
+        {
+            "question": "What is the speed of light in a vacuum?",
+            "answer": "Approximately 299,792 kilometers per second"
+        },
+        {
+            "question": "Which country has the most Olympic gold medals?",
+            "answer": "United States"
+        },
+        {
+            "question": "What is the smallest country in the world by area?",
+            "answer": "Vatican City"
+        },
+        {
+            "question": "What is the main ingredient in guacamole?",
+            "answer": "Avocado"
+        },
+        {
+            "question": "What is the largest planet in our solar system?",
+            "answer": "Jupiter"
+        },
+        {
+            "question": "In what year did humans first land on the Moon?",
+            "answer": "1969"
+        },
+        {
+            "question": "What is the official language of Brazil?",
+            "answer": "Portuguese"
+        },
+        {
+            "question": "Which element has the chemical symbol 'O'?",
+            "answer": "Oxygen"
+        },
+        {
+            "question": "What is the most populous country in the world?",
+            "answer": "China"
+        },
+        {
+            "question": "Which instrument is used to measure atmospheric pressure?",
+            "answer": "Barometer"
+        },
+        {
+            "question": "What is the longest bone in the human body?",
+            "answer": "Femur"
+        },
+        {
+            "question": "Who is known as the 'King of Pop'?",
+            "answer": "Michael Jackson"
+        },
+        {
+            "question": "Which country gifted the Statue of Liberty to the United States?",
+            "answer": "France"
+        },
+        {
+            "question": "What is the capital of Russia?",
+            "answer": "Moscow"
+        },
+        {
+            "question": "What is the hardest rock on Earth?",
+            "answer": "Diamond"
+        },
+        {
+            "question": "What is the process by which plants make their own food using sunlight?",
+            "answer": "Photosynthesis"
+        },
+        {
+            "question": "Which planet in our solar system has the most moons?",
+            "answer": "Saturn"
+        },
+        {
+            "question": "Who painted the Sistine Chapel ceiling?",
+            "answer": "Michelangelo"
+        },
+        {
+            "question": "What is the primary ingredient in chocolate?",
+            "answer": "Cocoa"
+        },
+        {
+            "question": "Which sea creature has three hearts?",
+            "answer": "Octopus"
+        },
+        {
+            "question": "What is the capital of Egypt?",
+            "answer": "Cairo"
+        },
+        {
+            "question": "Which scientist is known for the law of universal gravitation?",
+            "answer": "Isaac Newton"
+        },
+        {
+            "question": "What is the most spoken language in the world?",
+            "answer": "Mandarin Chinese"
+        },
+        {
+            "question": "What is the largest island in the world?",
+            "answer": "Greenland"
+        },
+        {
+            "question": "What is the smallest unit of life?",
+            "answer": "Cell"
+        },
+        {
+            "question": "Which country is famous for its maple syrup?",
+            "answer": "Canada"
+        },
+        {
+            "question": "What is the capital of Germany?",
+            "answer": "Berlin"
+        },
+        {
+            "question": "Who developed the polio vaccine?",
+            "answer": "Jonas Salk"
+        },
+        {
+            "question": "Which animal is known as the 'Ship of the Desert'?",
+            "answer": "Camel"
+        },
+        {
+            "question": "What is the name of the largest rainforest in the world?",
+            "answer": "Amazon Rainforest"
+        },
+        {
+            "question": "What is the unit of currency in Japan?",
+            "answer": "Yen"
+        },
+        {
+            "question": "Which planet is closest to the Sun?",
+            "answer": "Mercury"
+        },
+        {
+            "question": "What is the main gas found in the air we breathe?",
+            "answer": "Nitrogen"
+        },
+        {
+            "question": "Who is known as the 'Father of Modern Physics'?",
+            "answer": "Albert Einstein"
+        },
+        {
+            "question": "What is the largest organ in the human body?",
+            "answer": "Skin"
+        },
+        {
+            "question": "Which war was fought between the North and South regions in the United States?",
+            "answer": "The American Civil War"
+        }
+    ]
+}
