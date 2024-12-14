@@ -26,12 +26,12 @@ type Server struct {
 	conns map[*websocket.Conn]bool
 }
 
-type Questions struct {
-	Questions []Question `json:"questions"`
-}
-
 type Question struct {
 	Question string `json:"question"`
+	A        string `json:"A"`
+	B        string `json:"B"`
+	C        string `json:"C"`
+	D        string `json:"D"`
 	Answer   string `json:"answer"`
 }
 
@@ -41,7 +41,7 @@ func newServer() *Server {
 	}
 }
 
-var questionArray Questions
+var questionArray []Question
 
 func newGame() *Game {
 	matrix := make([][]byte, 3)
@@ -136,12 +136,12 @@ func giveRandomValidMatrixPosition(matrix [][]byte) (i, j int) {
 	return -1, -1
 }
 
-func loadQuestionsJSON() Questions {
-	dat, err := os.Open("questions.json")
+func loadQuestionsJSON() []Question {
+	dat, err := os.Open("multipleAnswer.json")
 	if err != nil {
 		panic(err)
 	}
-	var questionArray Questions
+	var questionArray []Question
 	byteValue, _ := io.ReadAll(dat)
 	errMarshal := json.Unmarshal(byteValue, &questionArray)
 	if errMarshal != nil {
@@ -150,10 +150,10 @@ func loadQuestionsJSON() Questions {
 	return questionArray
 }
 
-func pickRandomQuestion(questionArray Questions) Question {
-	n := len(questionArray.Questions)
+func pickRandomQuestion(questionArray []Question) Question {
+	n := len(questionArray)
 
-	return questionArray.Questions[rand.IntN(n)]
+	return questionArray[rand.IntN(n)]
 }
 
 // We need to verify that there are 2 players otherwise there will be made 2 goroutines for the host
@@ -228,7 +228,7 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 
 				// Pick a random question
 				question = pickRandomQuestion(questionArray)
-				conn.Write([]byte(question.Question))
+				conn.Write([]byte(fmt.Sprintf("Question %s\n A. %s\n B. %s\n C. %s\n D. %s\n ", question.Question, question.A, question.B, question.C, question.D)))
 
 				// Switch to waiting for the answer
 				state = 1
@@ -368,5 +368,5 @@ func main() {
 	questionArray = loadQuestionsJSON()
 
 	http.Handle("/ws", websocket.Handler(server.TicTacToe))
-	http.ListenAndServe("127.0.0.1:3000", nil)
+	http.ListenAndServe(":3000", nil)
 }
