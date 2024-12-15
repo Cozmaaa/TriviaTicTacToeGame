@@ -9,16 +9,18 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"slices"
 
 	"golang.org/x/net/websocket"
 )
 
 type Game struct {
-	url           string
-	conns         map[*websocket.Conn]bool
-	host          *websocket.Conn
-	currentPlayer *websocket.Conn
-	gameMatrix    [][]byte
+	url            string
+	conns          map[*websocket.Conn]bool
+	host           *websocket.Conn
+	currentPlayer  *websocket.Conn
+	gameMatrix     [][]byte
+	emptyPositions [][]int
 }
 
 type Server struct {
@@ -48,13 +50,24 @@ func newGame() *Game {
 	for i := range matrix {
 		matrix[i] = []byte{'.', '.', '.'}
 	}
-
+	positions := [][]int{
+		{0, 0},
+		{0, 1},
+		{0, 2},
+		{1, 0},
+		{1, 1},
+		{1, 2},
+		{2, 0},
+		{2, 1},
+		{2, 2},
+	}
 	return &Game{
-		url:           "",
-		conns:         make(map[*websocket.Conn]bool),
-		host:          &websocket.Conn{},
-		currentPlayer: &websocket.Conn{},
-		gameMatrix:    matrix,
+		url:            "",
+		conns:          make(map[*websocket.Conn]bool),
+		host:           &websocket.Conn{},
+		currentPlayer:  &websocket.Conn{},
+		gameMatrix:     matrix,
+		emptyPositions: positions,
 	}
 }
 
@@ -122,18 +135,17 @@ func isMatrixWinner(matrix [][]byte, i, j int, symbol byte) bool {
 	return false
 }
 
-func giveRandomValidMatrixPosition(matrix [][]byte) (i, j int) {
-	// Temporary LOGIC
-	// TODO: RANDOM COLUMN AND LINE GENERATOR
-
-	for i := 0; i < len(matrix); i++ {
-		for j := 0; j < len(matrix[i]); j++ {
-			if matrix[i][j] == '.' {
-				return i + 1, j + 1
-			}
+func removeSliceElement(emptyPositions *[][]int, searchedPosition []int) {
+	for i := 0; i < len(*emptyPositions); i++ {
+		if slices.Equal((*emptyPositions)[i], searchedPosition) {
+			*emptyPositions = append((*emptyPositions)[:i], (*emptyPositions)[i+1:]...)
 		}
 	}
-	return -1, -1
+}
+
+func giveRandomValidMatrixPosition(matrix [][]int) (i, j int) {
+	n := rand.IntN(len(matrix))
+	return matrix[n][0] + 1, matrix[n][1] + 1
 }
 
 func loadQuestionsJSON() []Question {
@@ -243,7 +255,7 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 			userAnswer := string(message)
 			if userAnswer != question.Answer {
 				conn.Write([]byte("You answered WRONG!!!"))
-				num1, num2 = giveRandomValidMatrixPosition(game.gameMatrix)
+				num1, num2 = giveRandomValidMatrixPosition(game.emptyPositions)
 			} else {
 				conn.Write([]byte("You answered GOOD!"))
 			}
@@ -252,9 +264,11 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 			// Place the symbol depending on who is playing (Host = 'X', Guest = 'O')
 			if game.currentPlayer == game.host {
 				game.gameMatrix[num1-1][num2-1] = 'X'
+				removeSliceElement(&game.emptyPositions, []int{num1 - 1, num2 - 1})
 				isWinner = isMatrixWinner(game.gameMatrix, num1-1, num2-1, 'X')
 			} else {
 				game.gameMatrix[num1-1][num2-1] = 'O'
+				removeSliceElement(&game.emptyPositions, []int{num1 - 1, num2 - 1})
 				isWinner = isMatrixWinner(game.gameMatrix, num1-1, num2-1, 'O')
 			}
 
@@ -368,5 +382,5 @@ func main() {
 	questionArray = loadQuestionsJSON()
 
 	http.Handle("/ws", websocket.Handler(server.TicTacToe))
-	http.ListenAndServe(":3000", nil)
+	http.ListenAndServe("127.0.0.1:3000", nil)
 }
