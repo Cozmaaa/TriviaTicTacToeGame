@@ -55,6 +55,7 @@ func main() {
 	}*/
 
 	// ipAddress = "wss://04l4z8bl-3000.euw.devtunnels.ms/ws"
+	// https://04l4z8bl-3000.euw.devtunnels.ms/
 	// wsConn := joinWS(ipAddress, "https://04l4z8bl-3000.euw.devtunnels.ms/")
 
 	ipAddress = "ws://localhost:3000/ws"

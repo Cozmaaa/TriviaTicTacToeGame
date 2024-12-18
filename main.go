@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,9 @@ import (
 	"regexp"
 	"slices"
 
+	"github.com/joho/godotenv"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 	"golang.org/x/net/websocket"
 )
 
@@ -86,6 +90,29 @@ func printGameMaxtrixToPlayers(game *Game) {
 	}
 }
 
+func resetMatrix() [][]byte {
+	matrix := make([][]byte, 3)
+	for i := range matrix {
+		matrix[i] = []byte{'.', '.', '.'}
+	}
+	return matrix
+}
+
+func resetEmptyPositions() [][]int {
+	positions := [][]int{
+		{0, 0},
+		{0, 1},
+		{0, 2},
+		{1, 0},
+		{1, 1},
+		{1, 2},
+		{2, 0},
+		{2, 1},
+		{2, 2},
+	}
+	return positions
+}
+
 func isMatrixWinner(matrix [][]byte, i, j int, symbol byte) bool {
 	// Check row
 	for col := 0; col < 3; col++ {
@@ -96,7 +123,6 @@ func isMatrixWinner(matrix [][]byte, i, j int, symbol byte) bool {
 			return true
 		}
 	}
-
 	// Check column
 	for row := 0; row < 3; row++ {
 		if matrix[row][j] != symbol {
@@ -253,11 +279,32 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 		case WaitingForAnswer:
 			fmt.Println("Sunt in stateul nou!")
 			userAnswer := string(message)
-			if userAnswer != question.Answer {
+
+			var fullCorrectAnswer string
+			switch question.Answer {
+			case "A":
+				fullCorrectAnswer = question.A
+			case "B":
+				fullCorrectAnswer = question.B
+			case "C":
+				fullCorrectAnswer = question.C
+			case "D":
+				fullCorrectAnswer = question.D
+
+			}
+
+			ch := make(chan string)
+
+			go openAIAPICall(question.Answer, fullCorrectAnswer, userAnswer, ch)
+
+			chatGPTResponse := <-ch
+			if chatGPTResponse == "false" {
 				conn.Write([]byte("You answered WRONG!!!"))
 				num1, num2 = giveRandomValidMatrixPosition(game.emptyPositions)
-			} else {
+			} else if chatGPTResponse == "true" {
 				conn.Write([]byte("You answered GOOD!"))
+			} else {
+				conn.Write([]byte("There was an error getting the real answer, but we will make it correct for you"))
 			}
 
 			var isWinner bool
@@ -278,9 +325,11 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 				conn.Write([]byte("You won! Congratulations!"))
 				otherPlayer.Write([]byte("You lost! Better luck next time!"))
 				// Here you might want to end the game or reset it
-				return
-			}
+				conn.Write([]byte("Game as been reseted!"))
+				game.gameMatrix = resetMatrix()
+				game.emptyPositions = resetEmptyPositions()
 
+			}
 			// Switch turn to the other player
 			game.currentPlayer = otherPlayer
 			// Prompt the next player for their move
@@ -375,6 +424,38 @@ func (s *Server) broadcast(b []byte) {
 			}
 		}(ws)
 	}
+}
+
+func openAIAPICall(correctAnswer, fullCorrectAnswer, userAnswer string, ch chan string) {
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+	promptAndAnswer := fmt.Sprintf(`You will have to answer only with : true or false ,
+                if the answer provided is the same as the users message you will say true 
+                , else you will say false , the answer can be in any other languages as well, even korean . The user can write only the correct letter such as a,b,c,d ,
+        but he can also only write the answer , like john , pacific ocean , both should be accepted
+                : The answer is : %s. %s `, correctAnswer, fullCorrectAnswer)
+
+	fmt.Println(promptAndAnswer)
+	fmt.Println(userAnswer)
+
+	OPENAI_API_KEY := os.Getenv("OPENAI_API_KEY")
+	client := openai.NewClient(option.WithAPIKey(OPENAI_API_KEY))
+	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
+		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(promptAndAnswer),
+			openai.UserMessage(userAnswer),
+		}),
+		Model: openai.F(openai.ChatModelGPT4oMini),
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	fmt.Println((chatCompletion.Choices[0].Message.Content))
+
+	ch <- (chatCompletion.Choices[0].Message.Content)
 }
 
 func main() {
