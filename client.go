@@ -54,8 +54,13 @@ func main() {
 		ipAddress = scanner.Text()
 	}*/
 
+	// ipAddress = "wss://04l4z8bl-3000.euw.devtunnels.ms/ws"
+	// https://04l4z8bl-3000.euw.devtunnels.ms/
+	// wsConn := joinWS(ipAddress, "https://04l4z8bl-3000.euw.devtunnels.ms/")
+
 	ipAddress = "ws://localhost:3000/ws"
 	wsConn := joinWS(ipAddress, "http://localhost/")
+
 	defer wsConn.server.Close()
 	wsConn.handleWS(wsConn.server)
 }
