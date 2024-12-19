@@ -1,215 +1,66 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"errors"
+	"cozmaaa/xon/internal/api"
+	"cozmaaa/xon/internal/game"
+	"cozmaaa/xon/internal/questions"
+	"cozmaaa/xon/internal/utils"
 	"fmt"
 	"io"
-	"math/rand/v2"
 	"net/http"
-	"os"
 	"regexp"
-	"slices"
 
-	"github.com/joho/godotenv"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 	"golang.org/x/net/websocket"
 )
 
-type Game struct {
-	url            string
-	conns          map[*websocket.Conn]bool
-	host           *websocket.Conn
-	currentPlayer  *websocket.Conn
-	gameMatrix     [][]byte
-	emptyPositions [][]int
-}
-
 type Server struct {
-	games []*Game
-	conns map[*websocket.Conn]bool
-}
-
-type Question struct {
-	Question string `json:"question"`
-	A        string `json:"A"`
-	B        string `json:"B"`
-	C        string `json:"C"`
-	D        string `json:"D"`
-	Answer   string `json:"answer"`
+	Games []*game.Game
+	Conns map[*websocket.Conn]bool
 }
 
 func newServer() *Server {
 	return &Server{
-		conns: make(map[*websocket.Conn]bool),
+		Conns: make(map[*websocket.Conn]bool),
 	}
 }
 
-var questionArray []Question
+func (s *Server) removeGameFromServer(currentGame *game.Game) {
+	var searchedIndex int = -1
+	for i := 0; i < len(s.Games); i++ {
+		if s.Games[i] == currentGame {
+			searchedIndex = i
+			break
+		}
+	}
+	if searchedIndex == -1 {
+		return
+	}
 
-func newGame() *Game {
-	matrix := make([][]byte, 3)
-	for i := range matrix {
-		matrix[i] = []byte{'.', '.', '.'}
-	}
-	positions := [][]int{
-		{0, 0},
-		{0, 1},
-		{0, 2},
-		{1, 0},
-		{1, 1},
-		{1, 2},
-		{2, 0},
-		{2, 1},
-		{2, 2},
-	}
-	return &Game{
-		url:            "",
-		conns:          make(map[*websocket.Conn]bool),
-		host:           &websocket.Conn{},
-		currentPlayer:  &websocket.Conn{},
-		gameMatrix:     matrix,
-		emptyPositions: positions,
-	}
+	s.Games = append(s.Games[:searchedIndex], s.Games[searchedIndex+1:]...)
 }
+
+var questionArray []questions.Question
 
 func (s *Server) TicTacToe(ws *websocket.Conn) {
 	s.ReadLoop(ws, s)
 }
 
-func printGameMaxtrixToPlayers(game *Game) {
-	for conn := range game.conns {
-		for i := 0; i < 3; i++ {
-			conn.Write([]byte(fmt.Sprintf(" %c | %c | %c ", game.gameMatrix[i][0], game.gameMatrix[i][1], game.gameMatrix[i][2])))
-			if i != 2 {
-				conn.Write([]byte("---+---+---"))
-			}
-		}
-	}
-}
-
-func resetMatrix() [][]byte {
-	matrix := make([][]byte, 3)
-	for i := range matrix {
-		matrix[i] = []byte{'.', '.', '.'}
-	}
-	return matrix
-}
-
-func resetEmptyPositions() [][]int {
-	positions := [][]int{
-		{0, 0},
-		{0, 1},
-		{0, 2},
-		{1, 0},
-		{1, 1},
-		{1, 2},
-		{2, 0},
-		{2, 1},
-		{2, 2},
-	}
-	return positions
-}
-
-func isMatrixWinner(matrix [][]byte, i, j int, symbol byte) bool {
-	// Check row
-	for col := 0; col < 3; col++ {
-		if matrix[i][col] != symbol {
-			break
-		}
-		if col == 2 { // Last column and all match
-			return true
-		}
-	}
-	// Check column
-	for row := 0; row < 3; row++ {
-		if matrix[row][j] != symbol {
-			break
-		}
-		if row == 2 { // Last row and all match
-			return true
-		}
-	}
-
-	// Check aain diagonal
-	if i == j { // Ensure it's a diagonal position
-		for d := 0; d < 3; d++ {
-			if matrix[d][d] != symbol {
-				break
-			}
-			if d == 2 { // Last diagonal element and all match
-				return true
-			}
-		}
-	}
-
-	// Check anti-diagonal
-	if i+j == 2 { // Ensure it's an anti-diagonal position (diagonala secundara)
-		for d := 0; d < 3; d++ {
-			if matrix[d][2-d] != symbol {
-				break
-			}
-			if d == 2 { // Last anti-diagonal element and all match
-				return true
-			}
-		}
-	}
-
-	// No winner
-	return false
-}
-
-func removeSliceElement(emptyPositions *[][]int, searchedPosition []int) {
-	for i := 0; i < len(*emptyPositions); i++ {
-		if slices.Equal((*emptyPositions)[i], searchedPosition) {
-			*emptyPositions = append((*emptyPositions)[:i], (*emptyPositions)[i+1:]...)
-		}
-	}
-}
-
-func giveRandomValidMatrixPosition(matrix [][]int) (i, j int) {
-	n := rand.IntN(len(matrix))
-	return matrix[n][0] + 1, matrix[n][1] + 1
-}
-
-func loadQuestionsJSON() []Question {
-	dat, err := os.Open("multipleAnswer.json")
-	if err != nil {
-		panic(err)
-	}
-	var questionArray []Question
-	byteValue, _ := io.ReadAll(dat)
-	errMarshal := json.Unmarshal(byteValue, &questionArray)
-	if errMarshal != nil {
-		fmt.Println("Erorare marshall")
-	}
-	return questionArray
-}
-
-func pickRandomQuestion(questionArray []Question) Question {
-	n := len(questionArray)
-
-	return questionArray[rand.IntN(n)]
-}
-
 // We need to verify that there are 2 players otherwise there will be made 2 goroutines for the host
 // And this way the reading feature will get broken (host 2 goroutines, other person 1 goroutine)
 // Will look to improve the logic behind this
-func RunGame(game *Game, isTwoPlayers bool) {
-	for v := range game.conns {
+func RunGame(game *game.Game, isTwoPlayers bool, server *Server) {
+	for v := range game.Conns {
 		v.Write([]byte("Bine ai venit la joc , mesajul asta il vad doar jucatorii"))
 	}
 	if isTwoPlayers {
-		for conn := range game.conns {
-			go handleConnectionGame(conn, game)
+		for conn := range game.Conns {
+			go handleConnectionGame(conn, game, server)
 		}
 	}
 	select {}
 }
 
-func handleConnectionGame(conn *websocket.Conn, game *Game) {
+func handleConnectionGame(conn *websocket.Conn, currentGame *game.Game, server *Server) {
 	buf := make([]byte, 1024)
 	conn.Write([]byte("Please pick a number between a row and a column (1-3) (1-3)"))
 
@@ -221,7 +72,7 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 
 	var (
 		num1, num2  int
-		question    Question
+		question    questions.Question
 		otherPlayer *websocket.Conn
 	)
 
@@ -231,7 +82,12 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 		n, err := conn.Read(buf)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("Client disconnected gracefully")
+				fmt.Println("Client disconnected gracefully ")
+				game.RemoveUserFromGameConn(currentGame, conn)
+				if len(currentGame.Conns) == 0 {
+					// Possible race condition , needs mutex
+					server.removeGameFromServer(currentGame)
+				}
 			} else {
 				fmt.Println("Error reading message in game:", err)
 			}
@@ -239,7 +95,7 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 		}
 
 		// If it's not this player's turn, just notify and continue
-		if game.currentPlayer != conn {
+		if currentGame.CurrentPlayer != conn {
 			conn.Write([]byte("It's not your turn, wait!"))
 			continue
 		}
@@ -248,9 +104,8 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 
 		switch state {
 		case WaitingForPosition:
-			fmt.Println(state)
 			if regexVal.Match(message) {
-				otherPlayer, err = findTheOtherPlayer(game, conn)
+				otherPlayer, err = utils.FindTheOtherPlayer(currentGame, conn)
 				if err != nil {
 					fmt.Println("Error changing turn:", err)
 					continue
@@ -259,25 +114,23 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 				num1, num2 = int(message[0]-'0'), int(message[2]-'0')
 				fmt.Printf("Selected position: Row=%d, Col=%d\n", num1, num2)
 
-				if game.gameMatrix[num1-1][num2-1] != '.' {
+				if currentGame.GameMatrix[num1-1][num2-1] != '.' {
 					conn.Write([]byte("That position is already taken, please choose another."))
 					continue
 				}
 
 				// Pick a random question
-				question = pickRandomQuestion(questionArray)
-				conn.Write([]byte(fmt.Sprintf("Question %s\n A. %s\n B. %s\n C. %s\n D. %s\n ", question.Question, question.A, question.B, question.C, question.D)))
+				question = questions.PickRandomQuestion(questionArray)
+				conn.Write([]byte(fmt.Sprintf("Question is : %s\n A. %s\n B. %s\n C. %s\n D. %s\n ", question.Question, question.A, question.B, question.C, question.D)))
 
 				// Switch to waiting for the answer
 				state = 1
-				fmt.Println("AM SCHIMBAT STATEUL")
 				continue
 			} else {
 				conn.Write([]byte("Please write a row and a column in the format: (1-3) (1-3)"))
 			}
 
 		case WaitingForAnswer:
-			fmt.Println("Sunt in stateul nou!")
 			userAnswer := string(message)
 
 			var fullCorrectAnswer string
@@ -295,12 +148,12 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 
 			ch := make(chan string)
 
-			go openAIAPICall(question.Answer, fullCorrectAnswer, userAnswer, ch)
+			go api.OpenAIAPICall(question.Answer, fullCorrectAnswer, userAnswer, ch)
 
 			chatGPTResponse := <-ch
 			if chatGPTResponse == "false" {
 				conn.Write([]byte("You answered WRONG!!!"))
-				num1, num2 = giveRandomValidMatrixPosition(game.emptyPositions)
+				num1, num2 = utils.GiveRandomValidMatrixPosition(currentGame.EmptyPositions)
 			} else if chatGPTResponse == "true" {
 				conn.Write([]byte("You answered GOOD!"))
 			} else {
@@ -309,43 +162,30 @@ func handleConnectionGame(conn *websocket.Conn, game *Game) {
 
 			var isWinner bool
 			// Place the symbol depending on who is playing (Host = 'X', Guest = 'O')
-			if game.currentPlayer == game.host {
-				game.gameMatrix[num1-1][num2-1] = 'X'
-				removeSliceElement(&game.emptyPositions, []int{num1 - 1, num2 - 1})
-				isWinner = isMatrixWinner(game.gameMatrix, num1-1, num2-1, 'X')
+			if currentGame.CurrentPlayer == currentGame.Host {
+				currentGame.GameMatrix[num1-1][num2-1] = 'X'
+				utils.RemoveSliceElement(&currentGame.EmptyPositions, []int{num1 - 1, num2 - 1})
+				isWinner = game.IsMatrixWinner(currentGame.GameMatrix, num1-1, num2-1, 'X')
 			} else {
-				game.gameMatrix[num1-1][num2-1] = 'O'
-				removeSliceElement(&game.emptyPositions, []int{num1 - 1, num2 - 1})
-				isWinner = isMatrixWinner(game.gameMatrix, num1-1, num2-1, 'O')
+				currentGame.GameMatrix[num1-1][num2-1] = 'O'
+				utils.RemoveSliceElement(&currentGame.EmptyPositions, []int{num1 - 1, num2 - 1})
+				isWinner = game.IsMatrixWinner(currentGame.GameMatrix, num1-1, num2-1, 'O')
 			}
 
-			printGameMaxtrixToPlayers(game)
+			game.PrintGameMaxtrixToPlayers(currentGame)
 
 			if isWinner {
-				conn.Write([]byte("You won! Congratulations!"))
-				otherPlayer.Write([]byte("You lost! Better luck next time!"))
-				// Here you might want to end the game or reset it
-				conn.Write([]byte("Game as been reseted!"))
-				game.gameMatrix = resetMatrix()
-				game.emptyPositions = resetEmptyPositions()
-
+				game.WonGame(currentGame, currentGame.CurrentPlayer, otherPlayer)
+			} else if !isWinner && len(currentGame.EmptyPositions) == 0 {
+				game.DrawGame(currentGame)
 			}
 			// Switch turn to the other player
-			game.currentPlayer = otherPlayer
+			currentGame.CurrentPlayer = otherPlayer
 			// Prompt the next player for their move
 			otherPlayer.Write([]byte("Please pick a number between a row and a column (1-3) (1-3)"))
 			state = WaitingForPosition
 		}
 	}
-}
-
-func findTheOtherPlayer(game *Game, currUser *websocket.Conn) (*websocket.Conn, error) {
-	for user := range game.conns {
-		if user != currUser {
-			return user, nil
-		}
-	}
-	return currUser, errors.New("There is not other connection right now")
 }
 
 func (s *Server) ReadLoop(ws *websocket.Conn, server *Server) {
@@ -365,25 +205,25 @@ func (s *Server) ReadLoop(ws *websocket.Conn, server *Server) {
 		}
 		msg := buf[:n]
 
-		if string(msg) == "C" {
+		if string(msg) == "C" || string(msg) == "c" {
 			ws.Write([]byte("Please write a lobby id for your friend to join"))
-			game := newGame()
+			game := game.NewGame()
 			for {
 				bytesRead, err := ws.Read(buf)
 				if err != nil {
 					break
 				}
 				urlName := buf[:bytesRead]
-				game.conns[ws] = true
-				game.url = string(urlName)
-				game.host = ws
-				game.currentPlayer = ws
+				game.Conns[ws] = true
+				game.Url = string(urlName)
+				game.Host = ws
+				game.CurrentPlayer = ws
 
-				server.games = append(server.games, game)
+				server.Games = append(server.Games, game)
 
-				ws.Write([]byte(fmt.Sprintf("You have created a server with the url %s", game.url)))
+				ws.Write([]byte(fmt.Sprintf("You have created a server with the url %s", game.Url)))
 
-				RunGame(game, false)
+				RunGame(game, false, server)
 				return
 			}
 		} else if string(msg) == "J" {
@@ -393,19 +233,19 @@ func (s *Server) ReadLoop(ws *websocket.Conn, server *Server) {
 				if err != nil {
 					break
 				}
-				var searchedGame *Game
-				for _, v := range server.games {
-					if v.url == string(buf[:bytesRead]) {
+				var searchedGame *game.Game
+				for _, v := range server.Games {
+					if v.Url == string(buf[:bytesRead]) {
 						searchedGame = v
 						break
 					}
 				}
-				if searchedGame.url == "" || len(searchedGame.conns) >= 2 {
+				if searchedGame == nil || len(searchedGame.Conns) >= 2 {
 					ws.Write([]byte("The server does not exist or there are too many players"))
 				} else {
-					searchedGame.conns[ws] = true
+					searchedGame.Conns[ws] = true
 					ws.Write([]byte("Connected to the server!"))
-					RunGame(searchedGame, true)
+					RunGame(searchedGame, true, server)
 					return
 				}
 			}
@@ -416,51 +256,9 @@ func (s *Server) ReadLoop(ws *websocket.Conn, server *Server) {
 	}
 }
 
-func (s *Server) broadcast(b []byte) {
-	for ws := range s.conns {
-		go func(ws *websocket.Conn) {
-			if _, err := ws.Write(b); err != nil {
-				fmt.Println("Error ", err)
-			}
-		}(ws)
-	}
-}
-
-func openAIAPICall(correctAnswer, fullCorrectAnswer, userAnswer string, ch chan string) {
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
-	promptAndAnswer := fmt.Sprintf(`You will have to answer only with : true or false ,
-                if the answer provided is the same as the users message you will say true 
-                , else you will say false , the answer can be in any other languages as well, even korean . The user can write only the correct letter such as a,b,c,d ,
-        but he can also only write the answer , like john , pacific ocean , both should be accepted
-                : The answer is : %s. %s `, correctAnswer, fullCorrectAnswer)
-
-	fmt.Println(promptAndAnswer)
-	fmt.Println(userAnswer)
-
-	OPENAI_API_KEY := os.Getenv("OPENAI_API_KEY")
-	client := openai.NewClient(option.WithAPIKey(OPENAI_API_KEY))
-	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
-		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(promptAndAnswer),
-			openai.UserMessage(userAnswer),
-		}),
-		Model: openai.F(openai.ChatModelGPT4oMini),
-	})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	fmt.Println((chatCompletion.Choices[0].Message.Content))
-
-	ch <- (chatCompletion.Choices[0].Message.Content)
-}
-
 func main() {
 	server := newServer()
-	questionArray = loadQuestionsJSON()
+	questionArray = questions.LoadQuestionsJSON()
 
 	http.Handle("/ws", websocket.Handler(server.TicTacToe))
 	http.ListenAndServe("127.0.0.1:3000", nil)
